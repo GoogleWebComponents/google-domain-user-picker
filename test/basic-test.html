@@ -1,0 +1,141 @@
+<!doctype html>
+<!--
+@license
+Copyright 2015 Google Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+
+    <link rel="import" href="../google-domain-user-picker.html">
+  </head>
+  <body>
+
+    <google-domain-user-picker></google-domain-user-picker>
+
+    <script>
+
+      var fakePeople = [
+        {
+          id: '1',
+          name: 'Fake User 1',
+          email: '1@example.com',
+          image: 'https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png',
+        },
+        {
+          id: '2',
+          name: 'Fake User 2',
+          email: '2@example.com',
+          image: 'https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png',
+        },
+        {
+          id: '3',
+          name: 'Fake User 3',
+          email: '3@example.com',
+          image: 'https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png',
+        }
+      ];
+
+
+      var gdup = document.querySelector('google-domain-user-picker');
+
+      var assertPersonFromEvent = function(done, i, eventName) {
+        var handler = function(event) {
+          assert.equal(event.detail.name, fakePeople[i].name);
+          gdup.removeEventListener(eventName, handler);
+          done();
+        };
+
+        return handler;
+      };
+
+      suite('google-domain-person-picker', function() {
+
+        localStorage.clear();
+
+        test('displays people when loaded', function(done) {
+          gdup.set('people', fakePeople);
+          gdup.async(function() {
+            assert.equal(gdup.$.results.children.length, fakePeople.length + 1); // includes the template tag
+            done();
+          });
+        });
+
+        test('the first person should be focused by default', function(done) {
+          gdup.async(function() {
+            assert.equal(gdup._focusedIndex, 0);
+            assert.equal(gdup.$.results.children[0].getAttribute('focused'), '');
+            done();
+          });
+        });
+
+        test('selects the second person when moving down', function(done) {
+          gdup._focusNext();
+          gdup.async(function() {
+            assert.equal(gdup._focusedIndex, 1);
+            assert.equal(gdup.$.results.children[1].getAttribute('focused'), '');
+            done();
+          });
+        });
+
+        test('selects the first person when moving up again', function(done) {
+          gdup._focusPrevious();
+          gdup.async(function() {
+            assert.equal(gdup._focusedIndex, 0);
+            assert.equal(gdup.$.results.children[0].getAttribute('focused'), '');
+            done();
+          });
+        });
+
+        test('selects the last person when moving up from 0', function(done) {
+          gdup._focusPrevious();
+          gdup.async(function() {
+            assert.equal(gdup._focusedIndex, fakePeople.length - 1);
+            assert.equal(gdup.$.results.children[fakePeople.length - 1].getAttribute('focused'), '');
+            done();
+          });
+        });
+
+        test('fires focus-user when focusing a new user', function(done) {
+          gdup.addEventListener('focus-user', assertPersonFromEvent(done, 0, 'focus-user'));
+          gdup._focusNext();
+          gdup.async(function() {
+            assert.equal(gdup._focusedIndex, 0);
+            assert.equal(gdup.$.results.children[0].getAttribute('focused'), '');
+          });
+        });
+
+        test('fires select-user when selecting a user', function(done) {
+          gdup.addEventListener('select-user', assertPersonFromEvent(done, 0, 'select-user'));
+          gdup._handleUserSelect({target: gdup.$.results.children[0]});
+        });
+
+        test('has localstorage frequent friends', function(done) {
+          gdup._setResultsToFrequentFriends();
+          gdup.async(function() {
+            assert.equal(gdup.$.results.children.length, 2); // single selected item + template
+            done();
+          });
+        });
+
+      });
+    </script>
+
+  </body>
+</html>
