@@ -1,4 +1,4 @@
-## google-domain-user-picker
+# google-domain-user-picker
 
 Easily choose a user from a Google Apps Domain.
 
