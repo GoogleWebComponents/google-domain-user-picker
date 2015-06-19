@@ -65,9 +65,7 @@ limitations under the License.
         return handler;
       };
 
-      suite('google-domain-person-picker', function() {
-
-        localStorage.clear();
+      suite('google-domain-user-picker', function() {
 
         test('displays people when loaded', function(done) {
           gdup.set('people', fakePeople);
@@ -112,8 +110,8 @@ limitations under the License.
           });
         });
 
-        test('fires focus-user when focusing a new user', function(done) {
-          gdup.addEventListener('focus-user', assertPersonFromEvent(done, 0, 'focus-user'));
+        test('fires picker-focus-user when focusing a new user', function(done) {
+          gdup.addEventListener('picker-focus-user', assertPersonFromEvent(done, 0, 'picker-focus-user'));
           gdup._focusNext();
           gdup.async(function() {
             assert.equal(gdup._focusedIndex, 0);
@@ -121,18 +119,18 @@ limitations under the License.
           });
         });
 
-        test('fires select-user when selecting a user', function(done) {
-          gdup.addEventListener('select-user', assertPersonFromEvent(done, 0, 'select-user'));
+        test('fires picker-select-user when selecting a user', function(done) {
+          gdup.addEventListener('picker-select-user', assertPersonFromEvent(done, 0, 'picker-select-user'));
           gdup._handleUserSelect({target: gdup.$.results.children[0]});
         });
 
-        test('has localstorage frequent friends', function(done) {
-          gdup._setResultsToFrequentFriends();
-          gdup.async(function() {
-            assert.equal(gdup.$.results.children.length, 2); // single selected item + template
-            done();
-          });
-        });
+        // test('has localstorage frequently picked people', function(done) {
+        //   gdup._setResultsToFrequentlyPicked();
+        //   gdup.async(function() {
+        //     assert.equal(gdup.$.results.children.length, 2); // single selected item + template
+        //     done();
+        //   });
+        // });
 
       });
     </script>

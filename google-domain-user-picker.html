@@ -421,11 +421,13 @@ Example:
       this._saveSelectUser(user);
       this._setLastUser(user);
       this.value = user.email;
-      this.fire('picker-elect-user', user);
+      this.fire('picker-select-user', user);
       this.clearResults();
     },
 
     _saveSelectUser: function(user) {
+      this.frequentlyPicked = this.frequentlyPicked || {};
+
       var previousCount = 0;
       if (this.frequentlyPicked &&
           this.frequentlyPicked[user.id] &&
