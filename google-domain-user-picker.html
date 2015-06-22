@@ -181,99 +181,91 @@ Example:
        * authenticated requests to the Google Admin SDK API
        *
        * @required
-       * @property accessToken
-       * @type String
        */
       accessToken: {
-        type: String,
+        type: String
       },
 
       /**
        * `placeholder` is the placeholder text for the main input element
        *
-       * @property placeholder
-       * @type String
        * @default Search for a User
        */
       placeholder: {
         type: String,
-        value: 'Search for a User',
+        value: 'Search for a User'
       },
 
       /**
        * `minLength` is the minimum input text required to search for a user
        *
-       * @property minLength
-       * @type Number
        * @default 1
        */
       minLength: {
         type: Number,
-        value: 1,
+        value: 1
       },
 
       /**
        * `maxResults` is the maximum number of results to show
        *
-       * @property maxResults
-       * @type Number
        * @default 20
        */
       maxResults: {
         type: Number,
-        value: 20,
+        value: 20
       },
 
       /**
        * `lastUser` is the last user chosen from the input
-       *
-       * @property lastUser
-       * @type Object
        */
       lastUser: {
         type: Object,
-        readOnly: true,
+        readOnly: true
       },
 
       /**
        * `value` is the current value of the input
-       *
-       * @property value
-       * @type String
        */
       value: {
         type: String
       },
 
       /**
+       * `people` is the list of results after searching
+       */
+      people: {
+        type: Array,
+        value: []
+      },
+
+      /**
        * `defaultProfileImage` is the image shown when a user does not have
        * a profile picture
        *
-       * @property defaultProfileImage
-       * @type String
        * @default https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png
        */
       defaultProfileImage: {
         type: String,
-        value: 'https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png',
+        value: 'https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png'
       },
 
       _focusedItem: {
         type: Object,
-        readOnly: true,
+        readOnly: true
       },
 
       _focusedIndex: {
         type: Number,
         value: 0,
-        readOnly: true,
+        readOnly: true
       }
 
     },
 
     observers: [
       '_shouldSearch(value)',
-      '_peopleChanged(people)',
+      '_peopleChanged(people)'
     ],
 
     behaviors: [
