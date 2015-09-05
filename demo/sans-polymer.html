@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+@license
+Copyright 2015 Google Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>google-domain-user-picker Demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="../google-domain-user-picker.html">
+
+    <style>
+      google-domain-user-picker {
+        visibility: hidden;
+      }
+
+      .results-container {
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+
+    <button id="authorize-button" onclick="handleAuthClick()">
+      Click me to auth with Google.
+    </button>
+
+    <div class="results-container">You chose: <span id="result"></span></div>
+
+    <google-domain-user-picker min-length="2"
+                               max-results="15"
+                               placeholder="Search"></google-domain-user-picker>
+
+    <script>
+
+      var CLIENT_ID = '400241932993-3kgqn50fdsd83hp26trn0bv8k2goiams.apps.googleusercontent.com';
+
+      var SCOPES = [
+        'https://www.googleapis.com/auth/admin.directory.user.readonly'
+      ];
+
+      function handleAuthResult(authResult) {
+
+        var authorizeButton = document.getElementById('authorize-button');
+        if (authResult && !authResult.error) {
+          authorizeButton.style.visibility = 'hidden';
+
+          var gdup = document.querySelector('google-domain-user-picker')
+
+          gdup.setAttribute('access-token', authResult.access_token);
+          gdup.style.visibility = 'inherit';
+          gdup.addEventListener('select-user', function(e) {
+            document.getElementById('result').textContent = e.detail.name;
+          });
+        }
+      }
+
+      function handleAuthClick(event) {
+        gapi.auth.authorize({
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          immediate: false
+        }, handleAuthResult);
+        return false;
+      }
+
+    </script>
+
+
+    <script src="https://apis.google.com/js/auth.js"></script>
+
+  </body>
+</html>

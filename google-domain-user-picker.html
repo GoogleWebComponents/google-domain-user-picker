@@ -1,0 +1,453 @@
+<!--
+@license
+Copyright 2015 Google Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../polymer/polymer.html">
+
+<link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../iron-input/iron-input.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../iron-localstorage/iron-localstorage.html">
+<link rel="import" href="../iron-a11y-keys-behavior/iron-a11y-keys-behavior.html">
+
+<!--
+Easily choose a user from a Google Apps Domain.
+
+Example:
+
+    <google-domain-user-picker access-token=""
+                               placeholder="Choose a user"
+                               min-length="3"
+                               on-select-user="_onUserSelected">
+    </google-domain-user-picker>
+
+-->
+<dom-module id="google-domain-user-picker">
+
+  <style>
+    :host {
+      min-width: 250px;
+      width: 100%;
+      max-width: 1000px;
+      display: block;
+      box-sizing: border-box;
+      @apply(--layout-vertical);
+    }
+
+    .search-container {
+      min-height: 1em;
+      margin-left: 5%;
+      margin-right: 5%;
+      margin-bottom: 10px;
+      @apply(--layout-horizontal);
+    }
+
+    .search {
+      margin-left: 5px;
+      @apply(--layout-flex);
+    }
+
+    .result-container {
+      padding-bottom: 5px;
+      padding-top: 5px;
+      cursor: pointer;
+      @apply(--layout-horizontal);
+      @apply(--layout-center);
+    }
+
+    .result-container img {
+      height: 36px;
+      width: 36px;
+      margin-left: 10%;
+      border-radius: 50%;
+    }
+
+    .result-container:hover {
+      background-color: #FAFAFA;
+    }
+
+    [focused] {
+      background-color: #EEEEEE;
+    }
+
+    .result-user-container {
+      margin-left: 10%;
+      @apply(--layout-flex);
+    }
+
+  </style>
+
+  <template>
+
+    <google-signin-aware
+        scopes="https://www.googleapis.com/auth/admin.directory.user.readonly"
+        on-google-signin-aware-success="_onSignIn">
+    </google-signin-aware>
+
+    <iron-ajax id="ajax"
+               url="https://www.googleapis.com/admin/directory/v1/users"
+               method="GET"
+               params="{{_getRequestParams(value, accessToken)}}"
+               headers="{{_getRequestHeaders(accessToken)}}"
+               handle-as="json"
+               debounce-duration="50"
+               on-response="_handleResponse">
+    </iron-ajax>
+
+    <iron-localstorage name="google-domain-user-picker-frequently-picked"
+                       value="{{frequentlyPicked}}">
+    </iron-localstorage>
+
+    <div class="search-container">
+      <iron-icon icon="search"></iron-icon>
+      <input is="iron-input"
+             label="{{placeholder}}"
+             bind-value="{{value}}"
+             on-focus="_onFocus"
+             placeholder="{{placeholder}}"
+             class="search">
+      </iron-input>
+    </div>
+
+    <div id="results" role="menu" tab-index="0">
+      <template id="resultsTemplate" is="dom-repeat" items="{{people}}">
+        <div class="result-container"
+             on-tap="_handleUserSelect"
+             focused$="{{_isFocused(item, _focusedIndex)}}">
+          <img src="{{item.image}}">
+          <div class="result-user-container">
+            <div>{{item.name}}</div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+  </template>
+
+</dom-module>
+
+<script>
+(function() {
+  Polymer({
+
+    is: 'google-domain-user-picker',
+
+    /**
+     * fired when a user is selected by the mouse or enter key
+     *
+     * @event picker-select-user
+     * @detail {{name: String, email: String, id: String, image: String}}
+     */
+
+    /**
+     * fired when a user is focused by the mouse or arrow keys
+     *
+     * @event picker-focus-user
+     * @detail {{name: String, email: String, id: String, image: String}}
+     */
+
+    /**
+     * fired when the user presses the escape key
+     * developers should use this to hide the element
+     *
+     * @event picker-esc
+     */
+
+    /**
+     * fired when there is an error with the picker
+     * for example, when there is no network connectivity
+     *
+     * @event picker-error
+     * @detail {String} the human-readable reason for the error
+     */
+
+    properties: {
+
+      /**
+       * `accessToken` is the accessToken that will be used when making
+       * authenticated requests to the Google Admin SDK API
+       *
+       * @required
+       */
+      accessToken: {
+        type: String
+      },
+
+      /**
+       * `placeholder` is the placeholder text for the main input element
+       *
+       * @default Search for a User
+       */
+      placeholder: {
+        type: String,
+        value: 'Search for a User'
+      },
+
+      /**
+       * `minLength` is the minimum input text required to search for a user
+       *
+       * @default 1
+       */
+      minLength: {
+        type: Number,
+        value: 1
+      },
+
+      /**
+       * `maxResults` is the maximum number of results to show
+       *
+       * @default 20
+       */
+      maxResults: {
+        type: Number,
+        value: 20
+      },
+
+      /**
+       * `lastUser` is the last user chosen from the input
+       */
+      lastUser: {
+        type: Object,
+        readOnly: true
+      },
+
+      /**
+       * `value` is the current value of the input
+       */
+      value: {
+        type: String
+      },
+
+      /**
+       * `people` is the list of results after searching
+       */
+      people: {
+        type: Array,
+        value: []
+      },
+
+      /**
+       * `defaultProfileImage` is the image shown when a user does not have
+       * a profile picture
+       *
+       * @default https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png
+       */
+      defaultProfileImage: {
+        type: String,
+        value: 'https://www.gstatic.com/images/icons/material/product/1x/avatar_circle_blue_48dp.png'
+      },
+
+      _focusedItem: {
+        type: Object,
+        readOnly: true
+      },
+
+      _focusedIndex: {
+        type: Number,
+        value: 0,
+        readOnly: true
+      }
+
+    },
+
+    observers: [
+      '_shouldSearch(value)',
+      '_peopleChanged(people)'
+    ],
+
+    behaviors: [
+      Polymer.IronA11yKeysBehavior
+    ],
+
+    keyBindings: {
+      'up down enter esc': '_onKeydown'
+    },
+
+    // Element Lifecycle
+
+    attached: function() {
+      this._setResultsToFrequentlyPicked();
+    },
+
+    // Public Methods
+
+    /**
+     * clear the results of the google-domain-user-picker
+     */
+    clearResults: function() {
+      this.people = [];
+    },
+
+    // Computed
+
+    _isFocused: function(item) {
+      return item.id === this.people[this._focusedIndex].id;
+    },
+
+    // Handlers
+
+    _onSignIn: function(event, detail) {
+      this.accessToken = detail.access_token;
+    },
+
+    _handleResponse: function(e) {
+
+      if (e.target.lastResponse.error) {
+        this.fire('picker-error', e.target.lastResponse.error.message);
+        return;
+      }
+
+      if (e.target.lastResponse.users === undefined) {
+        this.fire('picker-error', 'No users match that search.');
+        return;
+      }
+
+      this.people = e.target.lastResponse.users.map(function(user) {
+        return {
+          id: user.id,
+          name: user.name.fullName,
+          email: user.primaryEmail,
+          image: user.thumbnailPhotoUrl || this.defaultProfileImage,
+        };
+      }.bind(this));
+    },
+
+    _handleUserSelect: function(e) {
+      var user = this.$.resultsTemplate.itemForElement(e.target);
+      var index = this.$.resultsTemplate.indexForElement(e.target);
+      this._setFocusedIndex(index);
+      this._selectUser(user);
+    },
+
+    // Observers & Listeners
+
+    _onKeydown: function(event) {
+      if (event.detail.key === 'down') {
+        this._focusNext();
+      } else if (event.detail.key === 'up') {
+        this._focusPrevious();
+      } else if (event.detail.key === 'esc') {
+        this.fire('picker-esc');
+      } else if (event.detail.key === 'enter') {
+        var user = this.$.resultsTemplate.itemForElement(this._focusedItem);
+        this._selectUser(user);
+      }
+
+      event.preventDefault();
+    },
+
+    _onFocus: function(e) {
+      if (this.value.length < this.minLength) {
+        this._setResultsToFrequentlyPicked();
+      }
+    },
+
+    _shouldSearch: function() {
+      if (this.value.length >= this.minLength &&
+          this.accessToken !== undefined &&
+          this.accessToken.length) {
+        this.$.ajax.generateRequest();
+      } else {
+        this._setResultsToFrequentlyPicked();
+      }
+    },
+
+    _peopleChanged: function() {
+      this.async(function() {
+        this._setFocusedIndex(0);
+      });
+    },
+
+    // Element Behavior
+
+    _setResultsToFrequentlyPicked: function() {
+      this.frequentlyPicked = this.frequentlyPicked || {};
+
+      this.people = Object.keys(this.frequentlyPicked).map(function(k) {
+        return this.frequentlyPicked[k];
+      }.bind(this)).sort(function(a, b) {
+        return b.count - a.count;
+      }).slice(0, this.maxResults) || [];
+    },
+
+    _focusPrevious: function() {
+      var length = this.people.length;
+      var oldIndex = this.$.resultsTemplate.indexForElement(this._focusedItem);
+      var index = (oldIndex - 1 + length) % length;
+      this._setFocusedIndex(index);
+    },
+
+    _focusNext: function() {
+      var length = this.people.length;
+      var oldIndex = this.$.resultsTemplate.indexForElement(this._focusedItem);
+      var index = (oldIndex + 1) % length;
+      this._setFocusedIndex(index);
+    },
+
+    _setFocusedIndex: function(index) {
+      this._set_focusedIndex(index);
+      var item = this.$.results.children[index];
+      this._set_focusedItem(item);
+      this.fire('picker-focus-user', this.$.resultsTemplate.itemForElement(item));
+    },
+
+    _selectUser: function(user) {
+      // cancel any existing requests
+      if (this.$.ajax.lastRequest) {
+        this.$.ajax.discardRequest(this.$.ajax.lastRequest);
+      }
+
+      this._saveSelectUser(user);
+      this._setLastUser(user);
+      this.value = user.email;
+      this.fire('picker-select-user', user);
+      this.clearResults();
+    },
+
+    _saveSelectUser: function(user) {
+      this.frequentlyPicked = this.frequentlyPicked || {};
+
+      var previousCount = 0;
+      if (this.frequentlyPicked &&
+          this.frequentlyPicked[user.id] &&
+          this.frequentlyPicked[user.id].count) {
+        previousCount = this.frequentlyPicked[user.id].count;
+      }
+      this.frequentlyPicked[user.id] = user;
+      this.frequentlyPicked[user.id].count = previousCount + 1;
+      this.frequentlyPicked = JSON.parse(JSON.stringify(this.frequentlyPicked));
+    },
+
+    // Request Parameters
+
+    _getRequestParams: function() {
+      return {
+        'customer': 'my_customer',
+        'viewType': 'DOMAIN_PUBLIC',
+        'projection': 'basic',
+        'maxResults': this.maxResults,
+        'query': this.value,
+      };
+    },
+    _getRequestHeaders: function() {
+      return {
+        'Authorization': 'Bearer ' + this.accessToken
+      };
+    },
+
+  });
+})();
+</script>

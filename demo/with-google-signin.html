@@ -1,0 +1,70 @@
+<!doctype html>
+<!--
+@license
+Copyright 2015 Google Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <title>google-domain-user-picker Demo</title>
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="../google-domain-user-picker.html">
+    <link rel="import" href="../../google-signin/google-signin.html">
+
+    <style>
+      .results-container {
+        margin-bottom: 20px;
+      }
+    </style>
+
+  </head>
+  <body>
+
+    <template is="dom-bind" id="demo">
+
+      <google-signin
+          client-id="400241932993-3kgqn50fdsd83hp26trn0bv8k2goiams.apps.googleusercontent.com"
+          scopes="https://www.googleapis.com/auth/admin.directory.user.readonly"
+          signed-in="{{signedIn}}"
+          hidden$="{{signedIn}}">
+      </google-signin>
+
+      <div hidden$="{{!signedIn}}">
+        <div class="results-container">You chose: <span>{{result}}</span></div>
+
+        <google-domain-user-picker id="picker"
+                                   min-length="1"
+                                   max-results="15"
+                                   placeholder="Search">
+        </google-domain-user-picker>
+      </div>
+    </template>
+
+    <script>
+
+    var t = document.getElementById('demo');
+    t.signedIn = null;
+    document.addEventListener('WebComponentsReady', function() {
+      var gdup = document.querySelector('google-domain-user-picker');
+      gdup.addEventListener('select-user', function(e) {
+        t.result = e.detail.name;
+      });
+    });
+
+    </script>
+
+  </body>
+</html>
