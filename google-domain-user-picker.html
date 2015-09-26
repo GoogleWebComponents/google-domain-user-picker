@@ -407,7 +407,7 @@ Example:
     _selectUser: function(user) {
       // cancel any existing requests
       if (this.$.ajax.lastRequest) {
-        this.$.ajax.discardRequest(this.$.ajax.lastRequest);
+        this.$.ajax._discardRequest(this.$.ajax.lastRequest);
       }
 
       this._saveSelectUser(user);
